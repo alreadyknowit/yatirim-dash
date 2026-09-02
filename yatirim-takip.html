@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Yatırım Takip</title>
+<style>
+  :root{
+    --bg:#f5f5f3; --card:#ffffff; --border:#e4e2dc; --border-strong:#d3d0c7;
+    --text:#1a1a18; --text-2:#5f5e58; --text-3:#8c8a82;
+    --accent:#2a5d9e; --accent-bg:#e8f0fb; --accent-text:#134a86;
+    --green:#1d7a4f; --green-bg:#e5f5ec; --green-text:#0f5c3a;
+    --red:#c0392b; --red-bg:#fbeae8; --red-text:#8f2a1e;
+    --amber:#a1670f; --amber-bg:#fbf1de; --amber-text:#7a4c08;
+    --radius:14px; --radius-sm:10px;
+    --nav-h:64px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#141412; --card:#1e1e1b; --border:#333330; --border-strong:#454540;
+      --text:#f0efe9; --text-2:#b8b6ad; --text-3:#8c8a82;
+      --accent:#6fa5e8; --accent-bg:#1c2c40; --accent-text:#9dc2f2;
+      --green:#4fbf8a; --green-bg:#173327; --green-text:#7bd4a8;
+      --red:#e8756a; --red-bg:#3a201d; --red-text:#f0968b;
+      --amber:#e0ac4f; --amber-bg:#3a2c14; --amber-text:#f0c67e;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);padding-bottom:calc(var(--nav-h) + 16px);}
+  .wrap{max-width:520px;margin:0 auto;padding:16px;}
+  header.top{position:sticky;top:0;background:var(--bg);z-index:5;padding:14px 16px 6px;max-width:520px;margin:0 auto;}
+  header.top h1{font-size:19px;font-weight:600;margin:0 0 2px;}
+  header.top .sub{font-size:12px;color:var(--text-3);}
+  .view{display:none;}
+  .view.active{display:block;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+  .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+  .metric{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+  .metric .label{font-size:12px;color:var(--text-3);margin-bottom:4px;}
+  .metric .value{font-size:20px;font-weight:600;}
+  .metric .delta{font-size:12px;margin-top:3px;}
+  .delta.up{color:var(--green);}
+  .delta.down{color:var(--red);}
+  h2.section{font-size:14px;font-weight:600;color:var(--text-2);margin:20px 0 8px;text-transform:uppercase;letter-spacing:.03em;}
+  .acct-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .acct-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;}
+  .acct-card .name{font-size:12px;color:var(--text-3);}
+  .acct-card .amt{font-size:15px;font-weight:600;margin-top:2px;}
+  .chart-wrap{position:relative;height:220px;margin:4px 0 6px;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--text-2);margin-top:6px;}
+  .legend span.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px;}
+  label{display:block;font-size:13px;color:var(--text-2);margin:12px 0 5px;}
+  label:first-child{margin-top:0;}
+  select,input[type=text],input[type=number],input[type=date],textarea{
+    width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);
+    background:var(--card);color:var(--text);font-size:15px;
+  }
+  textarea{resize:vertical;min-height:50px;font-family:inherit;}
+  .type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .type-toggle button{padding:12px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--card);color:var(--text);font-size:13px;font-weight:500;}
+  .type-toggle button.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-text);}
+  .subtype-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .subtype-row button{flex:1 1 30%;padding:9px 6px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--card);color:var(--text-2);font-size:12.5px;}
+  .subtype-row button.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-text);font-weight:600;}
+  .btn-primary{width:100%;padding:13px;margin-top:18px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;}
+  .btn-primary:disabled{opacity:.55;}
+  .btn-ghost{padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--card);color:var(--text);font-size:13px;}
+  .rate-box{display:flex;align-items:center;justify-content:space-between;background:var(--accent-bg);border-radius:var(--radius-sm);padding:10px 12px;margin-top:14px;font-size:13px;color:var(--accent-text);}
+  .rate-box .rv{font-weight:700;font-size:15px;}
+  .rate-box.err{background:var(--red-bg);color:var(--red-text);}
+  .msg{font-size:12px;color:var(--text-3);margin-top:6px;}
+  .filter-row{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;}
+  .filter-row button{white-space:nowrap;padding:7px 13px;border-radius:20px;border:1px solid var(--border-strong);background:var(--card);color:var(--text-2);font-size:12.5px;}
+  .filter-row button.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+  .hist-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .hist-item .left .top-row{font-size:13.5px;font-weight:600;}
+  .hist-item .left .meta{font-size:11.5px;color:var(--text-3);margin-top:2px;}
+  .hist-item .right{text-align:right;flex-shrink:0;}
+  .hist-item .right .amt{font-size:14px;font-weight:600;}
+  .hist-item .right .try{font-size:11px;color:var(--text-3);}
+  .badge{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:20px;font-weight:600;margin-right:6px;}
+  .badge.snap{background:var(--accent-bg);color:var(--accent-text);}
+  .badge.in{background:var(--green-bg);color:var(--green-text);}
+  .badge.out{background:var(--red-bg);color:var(--red-text);}
+  .badge.salary{background:var(--amber-bg);color:var(--amber-text);}
+  .del-x{background:none;border:none;color:var(--text-3);font-size:16px;padding:2px 6px;margin-left:4px;}
+  .acct-manage-row{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:8px;}
+  .add-acct-row{display:flex;gap:8px;margin-top:12px;}
+  .add-acct-row input{flex:1;}
+  .add-acct-row button{padding:0 16px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;}
+  nav.bottom{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);
+    display:flex;height:var(--nav-h);z-index:10;}
+  nav.bottom button{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text-3);font-size:11px;}
+  nav.bottom button.active{color:var(--accent);}
+  nav.bottom button svg{width:20px;height:20px;}
+  .empty{text-align:center;padding:30px 10px;color:var(--text-3);font-size:13px;}
+  .snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;}
+  .snapshot-grid .field label{margin:0 0 4px;font-size:12px;}
+  .toast{position:fixed;bottom:calc(var(--nav-h) + 14px);left:16px;right:16px;max-width:488px;margin:0 auto;
+    background:var(--text);color:var(--bg);padding:11px 16px;border-radius:var(--radius-sm);font-size:13px;text-align:center;
+    opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:20;}
+  .toast.show{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Yatırım Takip</h1>
+  <div class="sub" id="headerSub">Yükleniyor…</div>
+</header>
+
+<div class="wrap">
+
+  <!-- DASHBOARD -->
+  <div class="view active" id="view-dashboard">
+    <div class="metric-grid">
+      <div class="metric">
+        <div class="label">Toplam ($)</div>
+        <div class="value" id="mTotalUsd">–</div>
+      </div>
+      <div class="metric">
+        <div class="label">Toplam (₺)</div>
+        <div class="value" id="mTotalTry">–</div>
+      </div>
+      <div class="metric">
+        <div class="label">Güncel kur (USD/TRY)</div>
+        <div class="value" id="mRate">–</div>
+      </div>
+      <div class="metric">
+        <div class="label">Başlangıçtan değişim</div>
+        <div class="value" id="mChange">–</div>
+        <div class="delta" id="mChangeSub"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:2px;">Portföy değeri (₺)</div>
+      <div class="chart-wrap"><canvas id="lineChart" role="img" aria-label="Zaman içinde toplam portföy değerinin TL cinsinden gelişimi"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:2px;">Hesap dağılımı</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="pieChart" role="img" aria-label="Hesaplara göre güncel portföy dağılımı"></canvas></div>
+      <div class="legend" id="pieLegend"></div>
+    </div>
+
+    <h2 class="section">Hesaplar</h2>
+    <div class="acct-grid" id="acctGrid"></div>
+
+    <h2 class="section">Son hareketler</h2>
+    <div id="recentList"></div>
+  </div>
+
+  <!-- ADD -->
+  <div class="view" id="view-add">
+    <div class="card">
+      <label style="margin-top:0;">Ne eklemek istiyorsun?</label>
+      <div class="type-toggle">
+        <button type="button" id="tabSnapshot" class="active">Portföy güncelleme</button>
+        <button type="button" id="tabCash">Nakit hareketi</button>
+      </div>
+
+      <!-- SNAPSHOT FORM -->
+      <div id="formSnapshot">
+        <label>Tarih</label>
+        <input type="date" id="snapDate">
+        <label>Hesap bakiyeleri ($)</label>
+        <div class="snapshot-grid" id="snapFields"></div>
+        <div class="msg">Değişmeyen hesapları olduğu gibi bırakabilirsin, son bilinen değer otomatik dolar.</div>
+      </div>
+
+      <!-- CASH FORM -->
+      <div id="formCash" style="display:none;">
+        <label style="margin-top:0;">İşlem türü</label>
+        <div class="subtype-row" id="cashTypeRow">
+          <button type="button" data-t="Para Yatırma" class="active">Para yatırma</button>
+          <button type="button" data-t="Para Çekme">Para çekme</button>
+          <button type="button" data-t="Maaş">Maaş</button>
+          <button type="button" data-t="Diğer">Diğer</button>
+        </div>
+
+        <label>Tarih</label>
+        <input type="date" id="cashDate">
+
+        <label>Hesap</label>
+        <select id="cashAccount"></select>
+
+        <label>Tutar ($)</label>
+        <input type="number" id="cashAmount" placeholder="0" inputmode="decimal">
+
+        <div id="pensionBlock" style="display:none;">
+          <label>Emeklilik katkısı ($) <span style="color:var(--text-3);">(opsiyonel)</span></label>
+          <input type="number" id="pensionAmount" placeholder="0" inputmode="decimal">
+          <label>Emeklilik hesabı</label>
+          <select id="pensionAccount"></select>
+        </div>
+
+        <label>Not <span style="color:var(--text-3);">(opsiyonel)</span></label>
+        <textarea id="cashNote" placeholder="Örn. maaş yatışı, araç alımı..."></textarea>
+      </div>
+
+      <div class="rate-box" id="rateBox">
+        <span>USD/TRY kuru bu kayıtla birlikte otomatik çekilecek</span>
+      </div>
+
+      <button class="btn-primary" id="saveBtn">Kaydet</button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="view" id="view-history">
+    <div class="filter-row" id="histFilter">
+      <button data-f="all" class="active">Tümü</button>
+      <button data-f="snapshot">Anlık görüntüler</button>
+      <button data-f="cash">Nakit hareketleri</button>
+    </div>
+    <div id="histList"></div>
+  </div>
+
+  <!-- ACCOUNTS -->
+  <div class="view" id="view-accounts">
+    <h2 class="section" style="margin-top:0;">Hesaplar</h2>
+    <div id="acctManageList"></div>
+    <div class="add-acct-row">
+      <input type="text" id="newAcctName" placeholder="Yeni hesap adı">
+      <button id="addAcctBtn">Ekle</button>
+    </div>
+  </div>
+
+</div>
+
+<nav class="bottom">
+  <button class="nav-btn active" data-view="dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+    Panel
+  </button>
+  <button class="nav-btn" data-view="add">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+    Ekle
+  </button>
+  <button class="nav-btn" data-view="history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 5v5h5"/><path d="M12 7v5l3 3"/></svg>
+    Geçmiş
+  </button>
+  <button class="nav-btn" data-view="accounts">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="8" cy="14.5" r="1"/></svg>
+    Hesaplar
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+/* ---------------- Seed data (extracted from the uploaded Excel) ---------------- */
+const SEED_ACCOUNTS = ["İş","Midas","Garan","Deniz","Kripto","Emek","Altın"];
+
+const SEED_SNAPSHOTS = [
+  {date:"2026-03-25", values:{"İş":7665,"Midas":37130,"Garan":12611,"Deniz":0,"Kripto":0,"Emek":8273,"Altın":0}, usdtry:44.36},
+  {date:"2026-04-08", values:{"İş":7835,"Midas":47439,"Garan":4164,"Deniz":0,"Kripto":0,"Emek":8486,"Altın":0}, usdtry:44.54},
+  {date:"2026-04-15", values:{"İş":8000,"Midas":49898,"Garan":11229,"Deniz":0,"Kripto":0,"Emek":0,"Altın":0}, usdtry:44.74},
+  {date:"2026-04-17", values:{"İş":8200,"Midas":51284,"Garan":11259,"Deniz":0,"Kripto":0,"Emek":0,"Altın":0}, usdtry:44.86},
+  {date:"2026-05-01", values:{"İş":8141,"Midas":25717,"Garan":3895,"Deniz":33425,"Kripto":2232,"Emek":155,"Altın":0}, usdtry:45.18},
+  {date:"2026-05-22", values:{"İş":8630,"Midas":19176,"Garan":3709,"Deniz":20500,"Kripto":2191,"Emek":153,"Altın":13003}, usdtry:45.74},
+  {date:"2026-06-01", values:{"İş":8661,"Midas":19063,"Garan":3637,"Deniz":20633,"Kripto":2065,"Emek":302,"Altın":15366}, usdtry:45.91},
+  {date:"2026-07-06", values:{"İş":2545,"Midas":12160,"Garan":28226,"Deniz":0,"Kripto":1776,"Emek":465,"Altın":23799}, usdtry:46.82},
+  {date:"2026-08-07", values:{"İş":2668,"Midas":12026,"Garan":28680,"Deniz":0,"Kripto":1847,"Emek":643,"Altın":24764}, usdtry:47.70},
+  {date:"2026-08-10", values:{"İş":0,"Midas":12122,"Garan":28780,"Deniz":0,"Kripto":1852,"Emek":662,"Altın":27551}, usdtry:47.71},
+  {date:"2026-08-19", values:{"İş":0,"Midas":5956,"Garan":35865,"Deniz":0,"Kripto":1942,"Emek":676,"Altın":28532}, usdtry:47.91},
+  {date:"2026-08-21", values:{"İş":0,"Midas":6027,"Garan":35922,"Deniz":0,"Kripto":2197,"Emek":688,"Altın":29252}, usdtry:48.01},
+];
+
+const SEED_CASH = [
+  {date:"2026-03-01", type:"Para Yatırma", account:"Midas", amountUsd:1800, usdtry:44.20, pension:0, pensionAccount:null, note:"Excel'den aktarıldı"},
+  {date:"2026-05-01", type:"Para Yatırma", account:"Midas", amountUsd:3895, usdtry:45.18, pension:0, pensionAccount:null, note:"Excel'den aktarıldı"},
+  {date:"2026-06-15", type:"Para Çekme", account:"Midas", amountUsd:-6634, usdtry:46.20, pension:0, pensionAccount:null, note:"Araç alımı (Excel'de tarih belirtilmemişti, tahmini tarih)"},
+  {date:"2026-06-01", type:"Maaş", account:"Midas", amountUsd:2395, usdtry:45.91, pension:152, pensionAccount:"Garan", note:"Excel'den aktarıldı"},
+  {date:"2026-06-20", type:"Maaş", account:"Midas", amountUsd:1600, usdtry:46.40, pension:150, pensionAccount:"Garan", note:"Excel'de tarih belirtilmemişti, tahmini tarih"},
+  {date:"2026-07-01", type:"Maaş", account:"Midas", amountUsd:985, usdtry:46.70, pension:146, pensionAccount:"Garan", note:"Excel'de tarih belirtilmemişti, tahmini tarih"},
+];
+
+/* ---------------- Storage helpers ---------------- */
+async function loadKey(key, fallback){
+  try{
+    const r = await window.storage.get(key);
+    return r ? JSON.parse(r.value) : fallback;
+  }catch(e){ return fallback; }
+}
+async function saveKey(key, value){
+  try{ await window.storage.set(key, JSON.stringify(value)); }catch(e){ console.error("storage set failed", key, e); }
+}
+
+let accounts = [];
+let snapshots = [];
+let cashTx = [];
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+async function initData(){
+  accounts = await loadKey("accounts", null);
+  snapshots = await loadKey("portfolio-snapshots", null);
+  cashTx = await loadKey("cash-transactions", null);
+
+  if(!accounts){ accounts = SEED_ACCOUNTS.slice(); await saveKey("accounts", accounts); }
+  if(!snapshots){
+    snapshots = SEED_SNAPSHOTS.map(s=>({id:uid(), date:s.date, values:s.values, usdtry:s.usdtry}));
+    await saveKey("portfolio-snapshots", snapshots);
+  }
+  if(!cashTx){
+    cashTx = SEED_CASH.map(c=>({id:uid(), date:c.date, type:c.type, account:c.account, amountUsd:c.amountUsd, usdtry:c.usdtry, pension:c.pension||0, pensionAccount:c.pensionAccount, note:c.note||""}));
+    await saveKey("cash-transactions", cashTx);
+  }
+  snapshots.sort((a,b)=>a.date.localeCompare(b.date));
+  cashTx.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+/* ---------------- Derived helpers ---------------- */
+function snapshotTotalUsd(s){ return accounts.reduce((sum,a)=> sum + (Number(s.values[a])||0), 0); }
+function fmtUsd(n){ return "$" + Math.round(n).toLocaleString("tr-TR"); }
+function fmtTry(n){ return "₺" + Math.round(n).toLocaleString("tr-TR"); }
+function fmtDate(d){
+  const dt = new Date(d+"T00:00:00");
+  return dt.toLocaleDateString("tr-TR", {day:"numeric", month:"short", year:"numeric"});
+}
+function latestSnapshot(){ return snapshots.length? snapshots[snapshots.length-1] : null; }
+function latestRate(){
+  const s = latestSnapshot();
+  const lastCash = cashTx.length? cashTx[cashTx.length-1] : null;
+  let rate = s ? s.usdtry : null;
+  if(lastCash && (!s || lastCash.date >= s.date)) rate = lastCash.usdtry;
+  return rate;
+}
+
+/* ---------------- Live rate fetch ---------------- */
+async function fetchLiveRate(){
+  try{
+    const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=TRY");
+    if(!res.ok) throw new Error("bad response");
+    const data = await res.json();
+    if(data && data.rates && data.rates.TRY) return {rate: data.rates.TRY, live:true};
+    throw new Error("no rate");
+  }catch(e){
+    return {rate:null, live:false};
+  }
+}
+
+/* ---------------- Rendering: Dashboard ---------------- */
+let lineChartInst=null, pieChartInst=null;
+const seriesColors = ["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#008300","#6250d6","#e34948","#8c8a82"];
+
+function renderDashboard(){
+  const s = latestSnapshot();
+  const totalUsd = s ? snapshotTotalUsd(s) : 0;
+  const rate = latestRate() || 0;
+  document.getElementById("mTotalUsd").textContent = s ? fmtUsd(totalUsd) : "–";
+  document.getElementById("mTotalTry").textContent = s ? fmtTry(totalUsd*rate) : "–";
+  document.getElementById("mRate").textContent = rate ? rate.toFixed(2) : "–";
+
+  if(snapshots.length>1){
+    const first = snapshots[0];
+    const firstTry = snapshotTotalUsd(first)*first.usdtry;
+    const lastTry = totalUsd*rate;
+    const changeTry = lastTry - firstTry;
+    const changePct = firstTry? (changeTry/firstTry*100) : 0;
+    document.getElementById("mChange").textContent = (changePct>=0?"+":"") + changePct.toFixed(1) + "%";
+    document.getElementById("mChangeSub").textContent = (changeTry>=0?"+":"") + fmtTry(Math.abs(changeTry)).replace("₺","₺ ");
+    document.getElementById("mChangeSub").className = "delta " + (changeTry>=0?"up":"down");
+  } else {
+    document.getElementById("mChange").textContent = "–";
+    document.getElementById("mChangeSub").textContent = "";
+  }
+
+  // account cards
+  const grid = document.getElementById("acctGrid");
+  grid.innerHTML = "";
+  accounts.forEach(a=>{
+    const val = s ? (Number(s.values[a])||0) : 0;
+    const div = document.createElement("div");
+    div.className = "acct-card";
+    div.innerHTML = `<div class="name">${a}</div><div class="amt">${fmtUsd(val)}</div>`;
+    grid.appendChild(div);
+  });
+
+  // line chart
+  const labels = snapshots.map(sn=>fmtDate(sn.date));
+  const dataTry = snapshots.map(sn=>Math.round(snapshotTotalUsd(sn)*sn.usdtry));
+  const ctx = document.getElementById("lineChart");
+  if(lineChartInst) lineChartInst.destroy();
+  lineChartInst = new Chart(ctx, {
+    type:"line",
+    data:{ labels, datasets:[{ data:dataTry, borderColor:"#2a78d6", backgroundColor:"rgba(42,120,214,0.1)", fill:true, borderWidth:2, pointRadius:2, tension:0.25 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:(c)=>fmtTry(c.parsed.y)}}},
+      scales:{ x:{ grid:{display:false}, ticks:{maxRotation:0, autoSkip:true, font:{size:10}} },
+               y:{ grid:{color:"rgba(140,138,130,0.15)"}, ticks:{ callback:(v)=> (v/1000000).toFixed(1)+"M", font:{size:10} } } }
+    }
+  });
+
+  // pie chart
+  const pieCtx = document.getElementById("pieChart");
+  const nonZero = accounts.map((a,i)=>({a, v: s? (Number(s.values[a])||0):0, c: seriesColors[i%seriesColors.length]})).filter(x=>x.v>0);
+  if(pieChartInst) pieChartInst.destroy();
+  pieChartInst = new Chart(pieCtx, {
+    type:"doughnut",
+    data:{ labels: nonZero.map(x=>x.a), datasets:[{ data: nonZero.map(x=>x.v), backgroundColor: nonZero.map(x=>x.c), borderColor: "var(--card)", borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(c)=> c.label+": "+fmtUsd(c.parsed)}} }, cutout:"62%" }
+  });
+  const legend = document.getElementById("pieLegend");
+  const total = nonZero.reduce((s,x)=>s+x.v,0) || 1;
+  legend.innerHTML = nonZero.map(x=> `<span><span class="dot" style="background:${x.c}"></span>${x.a} ${(x.v/total*100).toFixed(0)}%</span>`).join("");
+
+  // recent list
+  const recentList = document.getElementById("recentList");
+  const combined = buildCombinedList().slice(-5).reverse();
+  recentList.innerHTML = combined.length ? combined.map(renderHistItem).join("") : `<div class="empty">Henüz kayıt yok</div>`;
+}
+
+function buildCombinedList(){
+  const a = snapshots.map(s=>({...s, _kind:"snapshot"}));
+  const b = cashTx.map(c=>({...c, _kind:"cash"}));
+  return [...a,...b].sort((x,y)=> x.date.localeCompare(y.date));
+}
+
+function renderHistItem(item){
+  if(item._kind==="snapshot"){
+    const total = snapshotTotalUsd(item);
+    return `<div class="hist-item">
+      <div class="left">
+        <div class="top-row"><span class="badge snap">Anlık görüntü</span>${fmtDate(item.date)}</div>
+        <div class="meta">Kur: ${item.usdtry.toFixed(2)}</div>
+      </div>
+      <div class="right">
+        <div class="amt">${fmtUsd(total)}</div>
+        <div class="try">${fmtTry(total*item.usdtry)}</div>
+      </div>
+    </div>`;
+  } else {
+    const badgeClass = item.type==="Maaş" ? "salary" : (item.amountUsd<0 ? "out" : "in");
+    const label = item.type;
+    const pensionNote = item.pension ? ` · Emeklilik: $${item.pension} (${item.pensionAccount||"-"})` : "";
+    return `<div class="hist-item">
+      <div class="left">
+        <div class="top-row"><span class="badge ${badgeClass}">${label}</span>${item.account}</div>
+        <div class="meta">${fmtDate(item.date)} · Kur: ${item.usdtry.toFixed(2)}${pensionNote}</div>
+      </div>
+      <div class="right">
+        <div class="amt">${(item.amountUsd>=0?"+":"")}${fmtUsd(item.amountUsd)}</div>
+        <div class="try">${fmtTry(item.amountUsd*item.usdtry)}</div>
+      </div>
+    </div>`;
+  }
+}
+
+/* ---------------- Navigation ---------------- */
+const views = ["dashboard","add","history","accounts"];
+function setView(v){
+  views.forEach(x=>{
+    document.getElementById("view-"+x).classList.toggle("active", x===v);
+  });
+  document.querySelectorAll(".nav-btn").forEach(b=> b.classList.toggle("active", b.dataset.view===v));
+  if(v==="dashboard") renderDashboard();
+  if(v==="add") prepareAddForm();
+  if(v==="history") renderHistory("all");
+  if(v==="accounts") renderAccountsView();
+}
+document.querySelectorAll(".nav-btn").forEach(b=> b.addEventListener("click", ()=> setView(b.dataset.view)));
+
+/* ---------------- Add form ---------------- */
+let addType = "snapshot";
+let cashType = "Para Yatırma";
+
+function prepareAddForm(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById("snapDate").value = today;
+  document.getElementById("cashDate").value = today;
+
+  const snapFields = document.getElementById("snapFields");
+  const s = latestSnapshot();
+  snapFields.innerHTML = "";
+  accounts.forEach(a=>{
+    const lastVal = s ? (Number(s.values[a])||0) : 0;
+    const div = document.createElement("div");
+    div.className = "field";
+    div.innerHTML = `<label>${a}</label><input type="number" inputmode="decimal" data-acct="${a}" value="${lastVal}">`;
+    snapFields.appendChild(div);
+  });
+
+  const cashAcc = document.getElementById("cashAccount");
+  const pensionAcc = document.getElementById("pensionAccount");
+  cashAcc.innerHTML = accounts.map(a=>`<option value="${a}">${a}</option>`).join("");
+  pensionAcc.innerHTML = accounts.map(a=>`<option value="${a}">${a}</option>`).join("");
+
+  document.getElementById("rateBox").className = "rate-box";
+  document.getElementById("rateBox").innerHTML = "<span>USD/TRY kuru bu kayıtla birlikte otomatik çekilecek</span>";
+  document.getElementById("saveBtn").disabled = false;
+  document.getElementById("saveBtn").textContent = "Kaydet";
+}
+
+document.getElementById("tabSnapshot").addEventListener("click", ()=>{
+  addType="snapshot";
+  document.getElementById("tabSnapshot").classList.add("active");
+  document.getElementById("tabCash").classList.remove("active");
+  document.getElementById("formSnapshot").style.display="block";
+  document.getElementById("formCash").style.display="none";
+});
+document.getElementById("tabCash").addEventListener("click", ()=>{
+  addType="cash";
+  document.getElementById("tabCash").classList.add("active");
+  document.getElementById("tabSnapshot").classList.remove("active");
+  document.getElementById("formCash").style.display="block";
+  document.getElementById("formSnapshot").style.display="none";
+});
+document.querySelectorAll("#cashTypeRow button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll("#cashTypeRow button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    cashType = b.dataset.t;
+    document.getElementById("pensionBlock").style.display = cashType==="Maaş" ? "block" : "none";
+  });
+});
+
+document.getElementById("saveBtn").addEventListener("click", async ()=>{
+  const btn = document.getElementById("saveBtn");
+  const rateBox = document.getElementById("rateBox");
+  btn.disabled = true;
+  btn.textContent = "Kur çekiliyor…";
+  rateBox.className = "rate-box";
+  rateBox.innerHTML = "<span>USD/TRY kuru çekiliyor…</span>";
+
+  const {rate, live} = await fetchLiveRate();
+  let finalRate = rate;
+
+  if(!live){
+    const manual = prompt("Canlı kur çekilemedi. USD/TRY kurunu elle girer misin?", (latestRate()||45).toFixed(2));
+    finalRate = manual ? parseFloat(manual.replace(",",".")) : null;
+    if(!finalRate || isNaN(finalRate)){
+      rateBox.className = "rate-box err";
+      rateBox.innerHTML = "<span>Kur alınamadı, kayıt yapılamadı.</span>";
+      btn.disabled = false; btn.textContent = "Kaydet";
+      return;
+    }
+  }
+
+  rateBox.className = "rate-box";
+  rateBox.innerHTML = `<span>${live? "Canlı kur alındı" : "Elle girilen kur"}</span><span class="rv">${finalRate.toFixed(2)}</span>`;
+
+  if(addType==="snapshot"){
+    const date = document.getElementById("snapDate").value || new Date().toISOString().slice(0,10);
+    const values = {};
+    document.querySelectorAll("#snapFields input").forEach(inp=>{
+      values[inp.dataset.acct] = parseFloat(inp.value)||0;
+    });
+    snapshots.push({id:uid(), date, values, usdtry:finalRate});
+    snapshots.sort((a,b)=>a.date.localeCompare(b.date));
+    await saveKey("portfolio-snapshots", snapshots);
+    showToast("Portföy anlık görüntüsü kaydedildi");
+  } else {
+    const date = document.getElementById("cashDate").value || new Date().toISOString().slice(0,10);
+    const account = document.getElementById("cashAccount").value;
+    let amount = parseFloat(document.getElementById("cashAmount").value) || 0;
+    if(cashType==="Para Çekme" && amount>0) amount = -amount;
+    const pension = cashType==="Maaş" ? (parseFloat(document.getElementById("pensionAmount").value)||0) : 0;
+    const pensionAccount = cashType==="Maaş" ? document.getElementById("pensionAccount").value : null;
+    const note = document.getElementById("cashNote").value || "";
+
+    if(!amount){
+      rateBox.className = "rate-box err";
+      rateBox.innerHTML = "<span>Tutar girmelisin.</span>";
+      btn.disabled = false; btn.textContent = "Kaydet";
+      return;
+    }
+
+    cashTx.push({id:uid(), date, type:cashType, account, amountUsd:amount, usdtry:finalRate, pension, pensionAccount, note});
+    cashTx.sort((a,b)=>a.date.localeCompare(b.date));
+    await saveKey("cash-transactions", cashTx);
+    showToast("Nakit hareketi kaydedildi");
+    document.getElementById("cashAmount").value = "";
+    document.getElementById("pensionAmount").value = "";
+    document.getElementById("cashNote").value = "";
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Kaydet";
+  setTimeout(()=> setView("dashboard"), 500);
+});
+
+/* ---------------- History view ---------------- */
+document.querySelectorAll("#histFilter button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll("#histFilter button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    renderHistory(b.dataset.f);
+  });
+});
+
+function renderHistory(filter){
+  let list = buildCombinedList().slice().reverse();
+  if(filter==="snapshot") list = list.filter(x=>x._kind==="snapshot");
+  if(filter==="cash") list = list.filter(x=>x._kind==="cash");
+  const el = document.getElementById("histList");
+  if(!list.length){ el.innerHTML = `<div class="empty">Kayıt bulunamadı</div>`; return; }
+  el.innerHTML = list.map(item=>{
+    const inner = renderHistItem(item);
+    return inner.replace('<div class="hist-item">', `<div class="hist-item" data-id="${item.id}" data-kind="${item._kind}">`)
+                .replace('<div class="right">', `<div class="right"><button class="del-x" data-del="${item.id}" data-kind="${item._kind}">✕</button><br>`);
+  }).join("");
+  el.querySelectorAll("[data-del]").forEach(b=>{
+    b.addEventListener("click", async (e)=>{
+      e.stopPropagation();
+      const id = b.dataset.del, kind = b.dataset.kind;
+      if(!confirm("Bu kaydı silmek istediğine emin misin?")) return;
+      if(kind==="snapshot"){ snapshots = snapshots.filter(x=>x.id!==id); await saveKey("portfolio-snapshots", snapshots); }
+      else { cashTx = cashTx.filter(x=>x.id!==id); await saveKey("cash-transactions", cashTx); }
+      renderHistory(filter);
+    });
+  });
+}
+
+/* ---------------- Accounts view ---------------- */
+function renderAccountsView(){
+  const el = document.getElementById("acctManageList");
+  el.innerHTML = accounts.map(a=> `<div class="acct-manage-row"><span>${a}</span><button class="del-x" data-racct="${a}">✕</button></div>`).join("");
+  el.querySelectorAll("[data-racct]").forEach(b=>{
+    b.addEventListener("click", async ()=>{
+      const name = b.dataset.racct;
+      if(!confirm(`"${name}" hesabını kaldırmak istediğine emin misin? Geçmiş kayıtlar silinmez.`)) return;
+      accounts = accounts.filter(x=>x!==name);
+      await saveKey("accounts", accounts);
+      renderAccountsView();
+    });
+  });
+}
+document.getElementById("addAcctBtn").addEventListener("click", async ()=>{
+  const inp = document.getElementById("newAcctName");
+  const name = inp.value.trim();
+  if(!name) return;
+  if(accounts.includes(name)){ inp.value=""; return; }
+  accounts.push(name);
+  await saveKey("accounts", accounts);
+  inp.value = "";
+  renderAccountsView();
+});
+
+/* ---------------- Toast ---------------- */
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=> t.classList.remove("show"), 1800);
+}
+
+/* ---------------- Boot ---------------- */
+(async function boot(){
+  await initData();
+  document.getElementById("headerSub").textContent = `${accounts.length} hesap · ${snapshots.length} anlık görüntü · ${cashTx.length} nakit hareketi`;
+  renderDashboard();
+})();
+</script>
+</body>
+</html>
